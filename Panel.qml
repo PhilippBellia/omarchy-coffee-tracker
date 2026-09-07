@@ -1143,7 +1143,7 @@ Panel {
 
                 readonly property real cellWidth: (width - columnSpacing) / 2
 
-                NumberField {
+                SettingField {
                   id: limitField
                   label: root.t("settings.dailyLimit")
                   from: 50
@@ -1156,7 +1156,7 @@ Panel {
                   onModified: function(v) { root.persistNumber("dailyLimit", v) }
                 }
 
-                NumberField {
+                SettingField {
                   id: halfLifeField
                   label: root.t("settings.halfLife")
                   from: 1
@@ -1168,7 +1168,7 @@ Panel {
                   onModified: function(v) { root.persistNumber("halfLifeHours", v) }
                 }
 
-                NumberField {
+                SettingField {
                   id: sleepField
                   label: root.t("settings.residual")
                   from: 5
@@ -1181,7 +1181,7 @@ Panel {
                   onModified: function(v) { root.persistNumber("sleepThreshold", v) }
                 }
 
-                NumberField {
+                SettingField {
                   id: doseField
                   label: root.t("settings.dose")
                   from: 5
@@ -1404,7 +1404,7 @@ Panel {
 
                 readonly property real cellWidth: (width - columnSpacing) / 2
 
-                NumberField {
+                SettingField {
                   id: holyMgField
                   label: root.t("settings.holyCaffeine")
                   from: 10
@@ -1417,7 +1417,7 @@ Panel {
                   onModified: function(v) { root.persistNumber("holyMgPerServing", v) }
                 }
 
-                NumberField {
+                SettingField {
                   id: holyMlField
                   label: root.t("settings.holyWater")
                   from: 100

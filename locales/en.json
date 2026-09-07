@@ -76,7 +76,7 @@
   "settings.summary": "%1 mg goal · %2 mg/g bean · %3 mg per HOLY",
   "settings.dailyLimit": "Daily limit (mg)",
   "settings.halfLife": "Half-life (h)",
-  "settings.residual": "Residual caffeine (mg)",
+  "settings.residual": "Residual (mg)",
   "settings.dose": "Dose (g/shot)",
   "settings.efsaNote": "The EFSA considers 400 mg a safe daily intake for healthy adults — coffee and energy combined.",
   "settings.beanCaffeine": "Caffeine in the bean",
