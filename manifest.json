@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.philippbellia.coffee-tracker",
+  "name": "Coffee Tracker",
+  "version": "1.1.0",
+  "author": "Philipp Bellia",
+  "license": "MIT",
+  "description": "Caffeine tracker that derives every cup from how it is actually brewed, plus energy powder and cans, with half-life decay and a seven-day view.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Coffee",
+    "description": "Caffeine per day: click opens the one-tap cup buttons, middle-click logs an espresso, right-click takes the last cup back.",
+    "category": "Health",
+    "aliases": ["coffee", "caffeine"],
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "language": "auto",
+      "method": "portafilter",
+      "beanMgPerGram": 12,
+      "doseGrams": 18,
+      "espressoYield": 65,
+      "filterRatioPer100": 6,
+      "filterYield": 90,
+      "holyMgPerServing": 200,
+      "holyMlPerServing": 500,
+      "dailyLimit": 400,
+      "halfLifeHours": 5,
+      "sleepThreshold": 50,
+      "notify": true,
+      "showAmount": true
+    },
+    "schema": [
+      { "key": "language", "type": "enum", "label": "Language", "options": ["auto", "en", "de"], "defaultValue": "auto", "description": "auto follows the session locale. Additional codes appear as locale files are added." },
+      { "key": "method", "type": "enum", "label": "Brew method", "options": ["portafilter", "chemex"], "defaultValue": "portafilter" },
+      { "key": "dailyLimit", "type": "integer", "label": "Daily limit (mg)", "min": 50, "max": 2000, "step": 10, "defaultValue": 400 },
+      { "key": "halfLifeHours", "type": "integer", "label": "Half-life (h)", "min": 1, "max": 12, "defaultValue": 5 },
+      { "key": "sleepThreshold", "type": "integer", "label": "Residual caffeine (mg)", "min": 5, "max": 400, "step": 5, "defaultValue": 50 },
+      { "key": "beanMgPerGram", "type": "number", "label": "Caffeine in the bean (mg/g)", "min": 6, "max": 20, "defaultValue": 12 },
+      { "key": "doseGrams", "type": "integer", "label": "Dose (g/shot)", "min": 5, "max": 40, "defaultValue": 18 },
+      { "key": "espressoYield", "type": "integer", "label": "Portafilter yield (%)", "min": 20, "max": 100, "defaultValue": 65 },
+      { "key": "filterRatioPer100", "type": "number", "label": "Brew ratio (g/100 ml)", "min": 3, "max": 12, "defaultValue": 6 },
+      { "key": "filterYield", "type": "integer", "label": "Filter yield (%)", "min": 20, "max": 100, "defaultValue": 90 },
+      { "key": "holyMgPerServing", "type": "integer", "label": "Caffeine per powder serving (mg)", "min": 10, "max": 500, "step": 10, "defaultValue": 200 },
+      { "key": "holyMlPerServing", "type": "integer", "label": "Water per powder serving (ml)", "min": 100, "max": 1000, "step": 50, "defaultValue": 500 },
+      { "key": "notify", "type": "boolean", "label": "Notify on limit", "defaultValue": true },
+      { "key": "showAmount", "type": "boolean", "label": "Milligrams in the bar", "defaultValue": true }
+    ]
+  }
+}
