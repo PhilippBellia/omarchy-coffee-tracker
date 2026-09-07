@@ -40,6 +40,13 @@ a shaker.
 - **Room left** — how many more of your default cup fit under the goal.
 - **When you drop under your residual threshold**, stepped forward from the
   current decay curve.
+- **The decay curve** — the whole day as a shape: every drink is a step up,
+  everything between the steps is the same exponential coming down at your
+  half-life. The threshold is drawn across it, and where the curve crosses
+  it is marked on the time axis, because that crossing is what you open a
+  caffeine tracker in the evening to find out. Everything left of the
+  now-marker happened; the dashed half to the right is the forecast if you
+  drink nothing else.
 - **The last seven days**, stacked by source, with the daily goal as a
   hairline across the columns.
 

@@ -1,13 +1,11 @@
 {
   "meta.name": "Deutsch",
   "meta.decimalSeparator": ",",
-
   "unit.litre": "l",
   "unit.millilitre": "ml",
   "unit.now": "jetzt",
   "unit.over24h": "> 24 h",
   "unit.none": "—",
-
   "drink.espresso": "Espresso",
   "drink.doppio": "Doppio",
   "drink.americano": "Kaffee Schwarz",
@@ -27,28 +25,23 @@
   "drink.rockstar": "Rockstar",
   "drink.clubmate": "Club-Mate",
   "drink.fallback": "Kaffee",
-
   "method.portafilter": "Siebträger",
   "method.chemex": "Chemex",
   "method.portafilter.tooltip": "Alles auf Espresso-Basis (M)",
   "method.chemex.tooltip": "Filterkaffee, nur schwarz (M)",
-
   "count.cup.one": "1 Tasse",
   "count.cup.other": "%1 Tassen",
   "count.cup.zero": "0 Tassen",
   "count.energy.one": "1 Energy",
   "count.energy.other": "%1 Energy",
-
   "bar.overGoal": "%1 mg über dem Tagesziel",
   "bar.remaining": "noch %1 mg",
   "bar.split": "Kaffee %1 mg · Energy %2 mg",
   "bar.inBody": "Im Körper: %1 mg · unter %2 mg ab %3",
   "bar.method": "Zubereitung: %1",
-
   "notify.appName": "Koffein",
   "notify.limitTitle": "Koffein-Tagesziel erreicht",
   "notify.limitBody": "%1 mg von %2 mg. Ab hier lieber koffeinfrei.",
-
   "panel.today": "HEUTE",
   "panel.roomLeft": "NOCH DRIN",
   "panel.under": "UNTER %1 MG",
@@ -56,35 +49,29 @@
   "panel.inBodySplit": "im Körper %1 mg  ·  Kaffee %2 mg · Energy %3 mg",
   "panel.overGoal": "%1 mg über dem Tagesziel",
   "panel.remainingOf": "noch %1 mg von %2 mg",
-
   "tab.coffee": "Kaffee",
   "tab.energy": "Energydrink",
-
   "section.brewMethod": "Zubereitung",
   "section.logCup": "Tasse buchen",
   "section.holyPowder": "HOLY · Pulver",
   "section.cans": "Dosen",
   "section.today": "Heute",
   "section.week": "Letzte 7 Tage",
+  "section.curve": "Abbaukurve",
   "section.settings": "EINSTELLUNGEN",
   "section.goalDecay": "Tagesziel & Abbau",
   "section.beanExtraction": "Bohne & Extraktion",
   "section.holyServing": "HOLY · Portion",
-
   "brew.filterSummary": "%1 g / 100 ml · %2 % Ausbeute · ≈ %3 mg pro 200 ml",
   "brew.espressoSummary": "%1 g pro Shot · %2 % Ausbeute · ≈ %3 mg pro Shot",
-
   "holy.summary": "1 Portion · %1 · %2 mg — der Scoop ist die Dosis, alles andere sind Vielfache davon.",
   "cans.note": "Dosen rechnen mit dem Aufdruck: 32 mg/100 ml ist die EU-Obergrenze für Energydrinks, Club-Mate liegt als Limonade bei 20.",
-
   "log.undoLast": "Letztes Getränk zurücknehmen (U)",
   "log.clearToday": "Heutigen Tag leeren",
   "log.deleteDrink": "Dieses Getränk löschen",
   "log.empty": "Noch nichts getrunken heute.",
-
   "legend.coffee": "Kaffee",
   "legend.energy": "Energy",
-
   "settings.summary": "%1 mg Ziel · %2 mg/g Bohne · %3 mg pro HOLY",
   "settings.dailyLimit": "Tageslimit (mg)",
   "settings.halfLife": "Halbwertszeit (h)",
@@ -104,5 +91,14 @@
   "settings.notify": "Hinweis bei Limit",
   "settings.notifyNote": "Einmal beim Übertritt, nicht bei jedem weiteren Getränk.",
   "settings.language": "Sprache",
-  "settings.languageAuto": "System"
+  "settings.languageAuto": "System",
+  "curve.legend": "%1 mg im Körper",
+  "curve.threshold": "%1 mg",
+  "day.short.0": "So",
+  "day.short.1": "Mo",
+  "day.short.2": "Di",
+  "day.short.3": "Mi",
+  "day.short.4": "Do",
+  "day.short.5": "Fr",
+  "day.short.6": "Sa"
 }

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.philippbellia.coffee-tracker",
   "name": "Coffee Tracker",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "Philipp Bellia",
   "license": "MIT",
   "description": "Caffeine tracker that derives every cup from how it is actually brewed, plus energy powder and cans, with half-life decay and a seven-day view.",

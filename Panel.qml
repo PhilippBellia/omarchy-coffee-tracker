@@ -833,6 +833,64 @@ Panel {
 
               PanelSeparator { foreground: root.contentForeground }
 
+              // ---- The decay curve. The header says how much is in you
+              //      and when that drops under the threshold; this says how
+              //      it got there and how steeply it is coming down, which
+              //      is the difference between "still 120 mg" at 14:00 and
+              //      the same 120 mg at 22:00.
+              Item {
+                width: parent.width
+                height: Math.max(curveHeader.implicitHeight, curveLegend.implicitHeight)
+
+                PanelSectionHeader {
+                  id: curveHeader
+                  anchors.left: parent.left
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: root.t("section.curve")
+                  foreground: root.contentForeground
+                  fontFamily: root.contentFontFamily
+                }
+
+                Text {
+                  id: curveLegend
+                  anchors.right: parent.right
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: root.host ? root.t("curve.legend", root.host.activeMg) : ""
+                  color: root.dim
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.caption
+                }
+              }
+
+              DecayChart {
+                width: parent.width
+                height: Style.space(104)
+
+                samples: root.host ? root.host.decayCurve : []
+                nowMs: root.host ? root.host.now : 0
+                startMs: root.host ? root.host.curveStartMs : 0
+                endMs: root.host ? root.host.curveEndMs : 0
+                threshold: root.host ? root.host.sleepThreshold : 50
+                peak: root.host ? root.host.curvePeak : 100
+                clearAtMs: root.host ? root.host.clearAtMs : -1
+                clearAtLabel: root.host ? root.host.clearAtLabel : ""
+                thresholdLabel: root.host ? root.t("curve.threshold", root.host.sleepThreshold) : ""
+                // The window regularly runs past midnight; naming the day it
+                // turns into beats a second "00:00" on the same axis.
+                midnightLabel: root.host
+                  ? root.t("day.short." + new Date(root.host.curveStartMs + 86400000).getDay())
+                  : ""
+
+                foreground: root.contentForeground
+                dim: root.dim
+                accent: root.overLimit ? root.urgentColor : root.accentColor
+                track: root.trackColor
+                fontFamily: root.contentFontFamily
+                fontSize: Style.font.caption
+              }
+
+              PanelSeparator { foreground: root.contentForeground }
+
               // ---- The week, stacked by source. Context for whether today
               //      is a spike or a habit, and for which of the two is
               //      driving it; the hairline is the daily ceiling.
@@ -932,7 +990,9 @@ Panel {
                     Text {
                       width: parent.width
                       horizontalAlignment: Text.AlignHCenter
-                      text: Qt.formatDate(new Date(weekCol.modelData.day), "ddd").substring(0, 2)
+                      // Qt would format this in the session locale, which is
+                      // not necessarily the language the panel is speaking.
+                      text: root.t("day.short." + new Date(weekCol.modelData.day).getDay())
                       color: weekCol.modelData.today ? root.contentForeground : root.dim
                       font.family: root.contentFontFamily
                       font.pixelSize: Style.font.caption

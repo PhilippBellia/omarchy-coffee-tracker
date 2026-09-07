@@ -264,6 +264,59 @@ BarWidget {
     return -1
   }
 
+  // ---- Decay curve. The same activeCaffeineAt the read-outs use, sampled
+  //      across a window rather than at a single instant, so the panel can
+  //      draw the shape of the day instead of one number from it.
+  //
+  //      The window starts at midnight, because that is the day the rest of
+  //      the panel talks about, and ends a little past the moment the
+  //      residue drops under the threshold — that crossing is the question
+  //      the curve exists to answer, so it must be inside the frame. With
+  //      nothing left to wait for it still runs an hour ahead, and it never
+  //      looks more than a day forward.
+  readonly property real curveStartMs: startOfDay(now)
+
+  readonly property real curveEndMs: {
+    var end = clearAtMs >= 0 ? clearAtMs + 1800000 : now + 24 * 3600000
+    end = Math.max(end, now + 3600000)
+    return Math.min(end, now + 24 * 3600000)
+  }
+
+  // An even grid would round off the steps where a drink lands, so every
+  // entry in the window also contributes the two samples that bracket it:
+  // the curve keeps its vertical jumps instead of leaning into them.
+  readonly property var decayCurve: {
+    var from = curveStartMs
+    var to = curveEndMs
+    if (!(to > from)) return []
+
+    var times = []
+    var steps = 96
+    for (var i = 0; i <= steps; i++) times.push(from + (to - from) * i / steps)
+
+    for (var j = 0; j < entries.length; j++) {
+      var at = entries[j].t
+      if (at > from && at < to) {
+        times.push(at - 1)
+        times.push(at)
+      }
+    }
+    times.sort(function(a, b) { return a - b })
+
+    var out = []
+    for (var k = 0; k < times.length; k++)
+      out.push({ t: times[k], mg: activeCaffeineAt(times[k]) })
+    return out
+  }
+
+  // Headroom so the threshold line never sits on the ceiling of the plot,
+  // which is what it would do on a day that stayed close to it.
+  readonly property real curvePeak: {
+    var peak = sleepThreshold * 1.4
+    for (var i = 0; i < decayCurve.length; i++) peak = Math.max(peak, decayCurve[i].mg)
+    return peak
+  }
+
   readonly property string clearAtLabel: {
     if (todayEntries.length === 0 && activeMg <= 0) return t("unit.none")
     if (clearAtMs < 0) return t("unit.over24h")

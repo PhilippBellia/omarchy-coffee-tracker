@@ -27,14 +27,22 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCALES = os.path.join(ROOT, "locales")
 
-# t("key") and t(cond ? "a" : "b")
-DIRECT = re.compile(r'\bt\(\s*"([^"]+)"')
+# t("key"), t(cond ? "a" : "b"), and t("prefix." + expression)
+DIRECT = re.compile(r'\bt\(\s*"([^"]+)"\s*[,)]')
 TERNARY = re.compile(r'\bt\(\s*[A-Za-z0-9_.]+\s*\?\s*"([^"]+)"\s*:\s*"([^"]+)"')
+PREFIX = re.compile(r'\bt\(\s*"([^"]+)"\s*\+')
 PLACEHOLDER = re.compile(r"%\d")
 
 
 def keys_used():
+    """Keys the QML looks up, plus prefixes for keys it builds at runtime.
+
+    A lookup like t("day.short." + date.getDay()) cannot be resolved
+    statically, so its prefix is collected instead and every key starting
+    with it counts as used.
+    """
     used = set()
+    prefixes = set()
     for name in sorted(os.listdir(ROOT)):
         if not name.endswith(".qml"):
             continue
@@ -43,7 +51,8 @@ def keys_used():
         used |= set(DIRECT.findall(src))
         for pair in TERNARY.findall(src):
             used |= set(pair)
-    return used
+        prefixes |= set(PREFIX.findall(src))
+    return used, prefixes
 
 
 def load(code):
@@ -52,9 +61,12 @@ def load(code):
 
 
 def main():
-    used = keys_used()
+    used, prefixes = keys_used()
     english = load("en")
     failed = False
+
+    def is_used(key):
+        return key in used or any(key.startswith(p) for p in prefixes)
 
     missing = sorted(k for k in used if k not in english)
     if missing:
@@ -63,7 +75,7 @@ def main():
         for key in missing:
             print("  " + key)
 
-    unused = sorted(k for k in english if k not in used and not k.startswith("meta."))
+    unused = sorted(k for k in english if not is_used(k) and not k.startswith("meta."))
     if unused:
         failed = True
         print("en.json defines keys nothing looks up:")
