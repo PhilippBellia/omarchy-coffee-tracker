@@ -67,6 +67,9 @@ BarWidget {
   function t(key) {
     return root.i18n.t.apply(root.i18n, arguments)
   }
+  function formatTime(ms) {
+    return root.i18n.time(ms)
+  }
 
   readonly property string logPath: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state")
     + "/omarchy/coffee-log.json"
@@ -321,7 +324,7 @@ BarWidget {
     if (todayEntries.length === 0 && activeMg <= 0) return t("unit.none")
     if (clearAtMs < 0) return t("unit.over24h")
     if (clearAtMs <= now + 60000) return t("unit.now")
-    return Qt.formatDateTime(new Date(clearAtMs), "HH:mm")
+    return formatTime(clearAtMs)
   }
 
   // ---- Week strip. Split by source so the columns show where the day's

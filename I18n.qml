@@ -60,6 +60,16 @@ QtObject {
 
   readonly property string decimalSeparator: t("meta.decimalSeparator")
 
+  // Clock convention, from the locale file rather than from Qt: "HH:mm"
+  // where the day runs to 24, "h:mm AP" where it runs twice to 12. Same
+  // reasoning as the decimal mark — a panel speaking English that prints
+  // 21:10 is as half-translated as one printing 12.5 in German.
+  readonly property string timeFormat: t("meta.timeFormat")
+
+  function time(ms) {
+    return Qt.formatDateTime(new Date(ms), timeFormat)
+  }
+
   // FileView wants a filesystem path, and the locale files sit next to this
   // component wherever the plugin was installed.
   function localePath(code) {

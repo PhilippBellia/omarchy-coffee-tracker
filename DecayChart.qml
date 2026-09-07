@@ -38,6 +38,8 @@ Item {
   property string clearAtLabel: ""
   property string thresholdLabel: ""
   property string midnightLabel: ""
+  property string startLabel: ""
+  property string endLabel: ""
 
   property color foreground: "white"
   property color dim: "gray"
@@ -235,7 +237,7 @@ Item {
     anchors.top: plot.bottom
     anchors.topMargin: 4
     width: parent.width
-    implicitHeight: startLabel.implicitHeight
+    implicitHeight: startTick.implicitHeight
 
     readonly property real gap: 8
 
@@ -245,9 +247,9 @@ Item {
     }
 
     Text {
-      id: startLabel
+      id: startTick
       anchors.left: parent.left
-      text: root.ready ? Qt.formatDateTime(new Date(root.startMs), "HH:mm") : ""
+      text: root.ready ? root.startLabel : ""
       color: root.dim
       font.family: root.fontFamily
       font.pixelSize: root.fontSize
@@ -258,9 +260,9 @@ Item {
     // just after midnight would otherwise lose it to the day label sitting
     // an hour to its left.
     Text {
-      id: crossingLabel
+      id: crossingTick
       x: axisRow.clampedX(root.clearAtMs, implicitWidth)
-      visible: crossing.visible && x > startLabel.width + axisRow.gap
+      visible: crossing.visible && x > startTick.width + axisRow.gap
       text: root.clearAtLabel
       color: root.accent
       font.family: root.fontFamily
@@ -271,13 +273,13 @@ Item {
     // Gives way to the crossing. The day boundary keeps its line in the
     // plot either way, so dropping the label costs the reading nothing.
     Text {
-      id: midnightLabel
+      id: midnightTick
       x: axisRow.clampedX(root.midnightMs, implicitWidth)
       visible: root.midnightVisible
-        && x > startLabel.width + axisRow.gap
-        && !(crossingLabel.visible
-          && x < crossingLabel.x + crossingLabel.width + axisRow.gap
-          && crossingLabel.x < x + width + axisRow.gap)
+        && x > startTick.width + axisRow.gap
+        && !(crossingTick.visible
+          && x < crossingTick.x + crossingTick.width + axisRow.gap
+          && crossingTick.x < x + width + axisRow.gap)
       text: root.midnightLabel
       color: root.dim
       font.family: root.fontFamily
@@ -287,13 +289,13 @@ Item {
     // Last in line, and the least missed: the window ends half an hour
     // after the crossing by construction.
     Text {
-      id: endLabel
+      id: endTick
       anchors.right: parent.right
       visible: root.ready
-        && !(crossingLabel.visible && crossingLabel.x + crossingLabel.width + axisRow.gap > x)
-        && !(midnightLabel.visible && midnightLabel.x + midnightLabel.width + axisRow.gap > x)
-        && x > startLabel.width + axisRow.gap
-      text: Qt.formatDateTime(new Date(root.endMs), "HH:mm")
+        && !(crossingTick.visible && crossingTick.x + crossingTick.width + axisRow.gap > x)
+        && !(midnightTick.visible && midnightTick.x + midnightTick.width + axisRow.gap > x)
+        && x > startTick.width + axisRow.gap
+      text: root.endLabel
       color: root.dim
       font.family: root.fontFamily
       font.pixelSize: root.fontSize

@@ -118,7 +118,8 @@ the bar label and the limit notification. They are written to
 
 The interface ships in English and German and picks one from your session
 locale. Override it in the panel under **Language / Sprache**, where
-`System` means "follow the locale".
+`System` means "follow the locale". The language also decides the decimal
+mark and the clock: English shows `8:53 AM`, German `08:53`.
 
 ### Adding a language
 
@@ -129,8 +130,11 @@ Every user-facing string lives in `locales/<code>.json` as a flat
    Leave the keys alone.
 2. Keep the positional placeholders (`%1`, `%2`, `%3`) — they are filled with
    numbers and names in order, and a sentence can reorder them freely.
-3. Set `meta.name` to the language's name in that language, and
-   `meta.decimalSeparator` to `.` or `,` as that language writes decimals.
+3. Set the three `meta.` keys: `meta.name` to the language's name in that
+   language, `meta.decimalSeparator` to `.` or `,` as that language writes
+   decimals, and `meta.timeFormat` to a
+   [Qt time format](https://doc.qt.io/qt-6/qtime.html#toString) — `HH:mm`
+   for a 24-hour clock, `h:mm AP` for a 12-hour one with AM/PM.
 4. Add the code to `available` in `I18n.qml` — one line, and it appears in
    the panel's picker.
 5. Run the checker:

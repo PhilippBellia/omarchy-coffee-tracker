@@ -772,7 +772,7 @@ Panel {
 
                       Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: Qt.formatDateTime(new Date(logRow.modelData.t), "HH:mm")
+                        text: root.host ? root.host.formatTime(logRow.modelData.t) : ""
                         color: root.dim
                         font.family: root.contentFontFamily
                         font.pixelSize: Style.font.bodySmall
@@ -880,6 +880,8 @@ Panel {
                 midnightLabel: root.host
                   ? root.t("day.short." + new Date(root.host.curveStartMs + 86400000).getDay())
                   : ""
+                startLabel: root.host ? root.host.formatTime(root.host.curveStartMs) : ""
+                endLabel: root.host ? root.host.formatTime(root.host.curveEndMs) : ""
 
                 foreground: root.contentForeground
                 dim: root.dim

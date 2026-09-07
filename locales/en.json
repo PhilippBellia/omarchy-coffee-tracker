@@ -1,6 +1,7 @@
 {
   "meta.name": "English",
   "meta.decimalSeparator": ".",
+  "meta.timeFormat": "h:mm AP",
   "unit.litre": "l",
   "unit.millilitre": "ml",
   "unit.now": "now",
