@@ -4,13 +4,14 @@ import qs.Commons
 import qs.Ui
 
 // The caffeine panel: the day's total as a number and a filling bar, then
-// two tabs for the two sources that feed it — the machines on one, the
-// powders and cans on the other.
+// three tabs for the three sources that feed it — the machines on one, the
+// leaves on one, the powders and cans on the third.
 //
 // The header and the right-hand column are deliberately outside the tabs.
 // What you drank and how close you are to the ceiling is one number no
 // matter where it came from; the tab only decides what you can add next.
-// That is the whole reason both sources live in one widget instead of two.
+// That is the whole reason all three sources live in one widget instead of
+// several.
 //
 // Laid out wide rather than tall. The header spans the panel because the
 // bar toward the daily ceiling is the one element that wants the full
@@ -32,8 +33,8 @@ Panel {
   property var anchorItem: null
   property var hostWidget: null
 
-  // "coffee" | "energy". Not persisted: the panel opens on the machines,
-  // which is where most days start.
+  // "coffee" | "tea" | "energy". Not persisted: the panel opens on the
+  // machines, which is where most days start.
   property string tab: "coffee"
 
   // Session-local as well — the panel should open compact every time, not
@@ -63,10 +64,43 @@ Panel {
   readonly property color trackColor: Qt.rgba(contentForeground.r, contentForeground.g, contentForeground.b, 0.12)
 
   readonly property bool overLimit: host ? host.overLimit : false
-  readonly property color fillColor: overLimit ? urgentColor : accentColor
+
+  // Green under half the ceiling, yellow to 80 %, red past it — the level
+  // colour the host computes from today's total, easing here into whatever
+  // the bar, the fill and the pill are about to become.
+  readonly property color fillColor: root.host ? root.host.levelColor : root.accentColor
+
+  // Chart colours: whatever the user picked under Settings, or the theme's
+  // own accent and a wash of the foreground when nothing has been picked.
+  function chartColor(value, fallback) {
+    var text = String(value || "").replace(/^\s+|\s+$/g, "")
+    if (text === "") return fallback
+    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(text)) return text
+    return fallback
+  }
+
+  readonly property color curveColor: chartColor(
+    root.host ? root.host.chartCurveColor : "",
+    root.overLimit ? root.urgentColor : root.accentColor)
+
+  readonly property color thresholdLineColor: chartColor(
+    root.host ? root.host.chartThresholdColor : "",
+    Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.28))
+
+  // The two defaults, held apart from the resolved colours above so the
+  // settings row can show what "back to the theme" would give you even
+  // while a custom colour is in force.
+  readonly property color themeCurveColor: root.overLimit ? root.urgentColor : root.accentColor
+  readonly property color themeThresholdColor: Qt.rgba(root.contentForeground.r,
+    root.contentForeground.g, root.contentForeground.b, 0.28)
 
   // Energy reads as the same colour at half strength — one palette, two
-  // materials, so a stacked column still says "caffeine" first.
+  // materials, so a stacked column still says "caffeine" first. Tea sits
+  // between the two: brewed like coffee, dosed like a label.
+  function teaTint(base) {
+    return Qt.rgba(base.r, base.g, base.b, 0.7)
+  }
+
   function energyTint(base) {
     return Qt.rgba(base.r, base.g, base.b, 0.45)
   }
@@ -80,9 +114,21 @@ Panel {
     return out
   }
 
+  readonly property bool weekHasCoffee: {
+    var weeks = host ? host.weekTotals : []
+    for (var i = 0; i < weeks.length; i++) if (weeks[i].coffeeMg > 0) return true
+    return false
+  }
+
   readonly property bool weekHasEnergy: {
     var weeks = host ? host.weekTotals : []
     for (var i = 0; i < weeks.length; i++) if (weeks[i].energyMg > 0) return true
+    return false
+  }
+
+  readonly property bool weekHasTea: {
+    var weeks = host ? host.weekTotals : []
+    for (var i = 0; i < weeks.length; i++) if (weeks[i].teaMg > 0) return true
     return false
   }
 
@@ -112,7 +158,9 @@ Panel {
   // Summoning by hotkey moves no pointer, so a hover the bar was still
   // holding must not keep the center indicators revealed behind the panel.
   function setCenterHoverRevealSuppressed(value) {
-    if (root.bar && "centerHoverRevealSuppressed" in root.bar)
+    if (root.bar && typeof root.bar.setCenterHoverRevealSuppressed === "function")
+      root.bar.setCenterHoverRevealSuppressed(value)
+    else if (root.bar && "centerHoverRevealSuppressed" in root.bar)
       root.bar.centerHoverRevealSuppressed = value
   }
 
@@ -145,6 +193,7 @@ Panel {
       blocked: limitField.field.activeFocus || halfLifeField.field.activeFocus
         || sleepField.field.activeFocus || doseField.field.activeFocus
         || holyMgField.field.activeFocus || holyMlField.field.activeFocus
+        || nightStartField.field.activeFocus
 
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
@@ -155,9 +204,10 @@ Panel {
         if (key === "u") root.host.undoLast()
         else if (key === "e") root.host.addDrink(root.host.defaultDrink)
         else if (key === "h") root.host.addDrinkId("holy-1")
-        else if (key === "m") root.host.setMethod(root.host.method === "chemex" ? "portafilter" : "chemex")
+        else if (key === "m") root.host.cycleMethod()
         else if (key === "1") root.tab = "coffee"
-        else if (key === "2") root.tab = "energy"
+        else if (key === "2") root.tab = "tea"
+        else if (key === "3") root.tab = "energy"
         else if (key === ",") root.settingsOpen = !root.settingsOpen
       }
 
@@ -177,26 +227,105 @@ Panel {
 
           // ---- Header. Full width, because the bar toward the ceiling is
           //      the one element that earns it — and because it is the one
-          //      thing both tabs feed.
+          //      thing all three tabs feed.
           Item {
             width: parent.width
-            height: Math.max(heroIcon.implicitHeight, heroLabels.implicitHeight, headerStats.implicitHeight)
+            height: Math.max(heroIconSlot.height, heroLabels.implicitHeight, headerStats.implicitHeight)
 
-            Text {
-              id: heroIcon
+            // The cup. The glyph and the steam above it live in one slot so
+            // that when a drink is logged a single thing moves: the slot
+            // bounces for as long as the host keeps the pulse alive, and the
+            // wisps lift out of the top of the glyph's own box and fade.
+            // Nothing new is drawn once the two seconds are up.
+            Item {
+              id: heroIconSlot
               anchors.left: parent.left
               anchors.verticalCenter: parent.verticalCenter
-              text: root.tab === "energy" ? "󱐋" : (root.host ? root.host.methodIcon : "󱂟")
-              color: root.host && root.host.todayEntries.length > 0 ? root.fillColor : root.dim
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.displayLarge
+              width: heroIcon.implicitWidth
+              height: heroIcon.implicitHeight
 
-              Behavior on color { ColorAnimation { duration: 200 } }
+              readonly property int cupPulse: root.host ? root.host.cupPulse : 0
+              readonly property bool steaming: root.host ? root.host.cupAnimating : false
+
+              onCupPulseChanged: if (cupPulse > 0) heroBounce.restart()
+
+              Text {
+                id: heroIcon
+                anchors.centerIn: parent
+                text: root.tab === "energy" ? "󱐋" : (root.tab === "tea" ? "󰶞" : (root.host ? root.host.methodIcon : "󱂟"))
+                color: root.host && root.host.todayEntries.length > 0 ? root.fillColor : root.dim
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.displayLarge
+
+                Behavior on color { ColorAnimation { duration: 420; easing.type: Easing.InOutQuad } }
+              }
+
+              // Three wisps on the same loop, each starting a quarter of a
+              // second after the last, so they rise as separate trails
+              // rather than as one flicker. `progress` is the only thing
+              // animated: position and opacity are derived from it, which
+              // leaves the bindings intact and the wisps back at the rim
+              // the moment the loop turns over.
+              Item {
+                id: steam
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                height: parent.height * 0.55
+                visible: heroIconSlot.steaming
+
+                Repeater {
+                  model: 3
+
+                  Rectangle {
+                    id: wisp
+                    required property int index
+
+                    property real progress: 0
+
+                    width: Math.max(2, Math.round(steam.height * 0.16))
+                    height: steam.height * 0.5
+                    radius: width / 2
+                    x: steam.width * (0.30 + index * 0.20) - width / 2
+                    y: steam.height * (1 - progress)
+                    opacity: Math.sin(Math.max(0, Math.min(1, progress)) * Math.PI) * 0.8
+                    color: root.fillColor
+
+                    SequentialAnimation {
+                      id: wispLoop
+                      running: heroIconSlot.steaming
+                      loops: Animation.Infinite
+                      // Stopping mid-cycle leaves `progress` wherever the
+                      // wisp happened to be. Zeroing it on the way out means
+                      // the next cup starts from the rim rather than showing
+                      // a stray trail for the length of the opening pause.
+                      onRunningChanged: if (!running) wisp.progress = 0
+                      PauseAnimation { duration: wisp.index * 240 }
+                      NumberAnimation {
+                        target: wisp
+                        property: "progress"
+                        from: 0
+                        to: 1
+                        duration: 1300
+                        easing.type: Easing.OutQuad
+                      }
+                      PropertyAction { target: wisp; property: "progress"; value: 0 }
+                    }
+                  }
+                }
+              }
+
+              SequentialAnimation {
+                id: heroBounce
+                loops: 3
+                NumberAnimation { target: heroIconSlot; property: "scale"; to: 1.14; duration: 190; easing.type: Easing.OutBack }
+                NumberAnimation { target: heroIconSlot; property: "scale"; to: 1.0; duration: 430; easing.type: Easing.InOutSine }
+              }
             }
 
             Column {
               id: heroLabels
-              anchors.left: heroIcon.right
+              anchors.left: heroIconSlot.right
               anchors.leftMargin: Style.space(14)
               anchors.right: headerStats.left
               anchors.rightMargin: Style.space(18)
@@ -303,8 +432,14 @@ Panel {
                 implicitHeight: shareText.implicitHeight + Style.space(7)
                 color: "transparent"
                 radius: Style.cornerRadius
-                borderSpec: Border.flat(root.overLimit ? root.urgentColor : Qt.rgba(root.contentForeground.r,
-                  root.contentForeground.g, root.contentForeground.b, 0.35), Math.max(1, Style.spacing.hairline))
+                // The pill is the percentage of the ceiling the bar is
+                // filling toward, so it wears the same level colour the bar
+                // does — and keeps the neutral ring until there is
+                // something to be a percentage of.
+                borderSpec: Border.flat(root.host && root.host.todayEntries.length > 0
+                  ? root.fillColor
+                  : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.35),
+                  Math.max(1, Style.spacing.hairline))
 
                 Text {
                   id: shareText
@@ -312,10 +447,14 @@ Panel {
                   text: root.host && root.host.dailyLimit > 0
                     ? Math.round(root.host.todayMg / root.host.dailyLimit * 100) + " %"
                     : "0 %"
-                  color: root.overLimit ? root.urgentColor : root.contentForeground
+                  color: root.host && root.host.todayEntries.length > 0
+                    ? root.fillColor
+                    : root.contentForeground
                   font.family: root.contentFontFamily
                   font.pixelSize: Style.font.subtitle
                   font.bold: true
+
+                  Behavior on color { ColorAnimation { duration: 420; easing.type: Easing.InOutQuad } }
                 }
               }
             }
@@ -347,7 +486,10 @@ Panel {
                 color: root.energyTint(root.fillColor)
 
                 Behavior on width { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
-                Behavior on color { ColorAnimation { duration: 200 } }
+                // Longer than the width, so the fill arrives first and the
+                // hue follows it across the threshold instead of arriving
+                // together as a cut.
+                Behavior on color { ColorAnimation { duration: 420; easing.type: Easing.InOutQuad } }
               }
 
               // Still circulating, after the half-life has taken its cut.
@@ -360,7 +502,7 @@ Panel {
                 color: root.fillColor
 
                 Behavior on width { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
-                Behavior on color { ColorAnimation { duration: 200 } }
+                Behavior on color { ColorAnimation { duration: 420; easing.type: Easing.InOutQuad } }
               }
             }
 
@@ -373,9 +515,9 @@ Panel {
                 anchors.left: parent.left
                 text: {
                   if (!root.host) return ""
-                  if (root.host.todayEnergyMg > 0 && root.host.todayCoffeeMg > 0)
-                    return root.t("panel.inBodySplit", root.host.activeMg,
-                      root.host.todayCoffeeMg, root.host.todayEnergyMg)
+                  var summary = root.host.bucketSummary()
+                  if (summary)
+                    return root.t("panel.inBody", root.host.activeMg) + "  ·  " + summary
                   return root.t("panel.inBody", root.host.activeMg)
                 }
                 color: root.dim
@@ -422,6 +564,7 @@ Panel {
                 Repeater {
                   model: [
                     { id: "coffee", label: root.t("tab.coffee"), icon: "󰅶" },
+                    { id: "tea", label: root.t("tab.tea"), icon: "󰶞" },
                     { id: "energy", label: root.t("tab.energy"), icon: "󱐋" }
                   ]
 
@@ -504,25 +647,45 @@ Panel {
                   fontFamily: root.contentFontFamily
                 }
 
-                ButtonGroup {
+                // Four chips are wider than the column they live in, and a
+                // Row does not wrap — left alone they run past the column
+                // edge and land on top of the log beside it. So the row
+                // measures itself against the column and shrinks to fit it,
+                // staying at full size whenever there is room for that.
+                Item {
+                  id: brewRowFrame
                   width: parent.width
-                  focusable: false
-                  value: root.host ? root.host.method : "portafilter"
-                  foreground: root.contentForeground
-                  background: root.bar ? root.bar.background : Color.background
-                  fontFamily: root.contentFontFamily
-                  options: [
-                    { value: "portafilter", label: root.t("method.portafilter"), icon: "󱂟", tooltip: root.t("method.portafilter.tooltip") },
-                    { value: "chemex", label: root.t("method.chemex"), icon: "󱜼", tooltip: root.t("method.chemex.tooltip") }
-                  ]
-                  onChanged: function(v) { if (root.host) root.host.setMethod(v) }
+                  height: Math.round(brewGroup.implicitHeight * brewGroup.fitScale)
+
+                  ButtonGroup {
+                    id: brewGroup
+                    focusable: false
+                    readonly property real fitScale: implicitWidth > 0
+                      ? Math.min(1, brewRowFrame.width / implicitWidth)
+                      : 1
+                    scale: fitScale
+                    transformOrigin: Item.TopLeft
+                    value: root.host ? root.host.method : "portafilter"
+                    foreground: root.contentForeground
+                    background: root.bar ? root.bar.background : Color.background
+                    fontFamily: root.contentFontFamily
+                    options: [
+                      { value: "portafilter", label: root.t("method.portafilter"), icon: "󱂟", tooltip: root.t("method.portafilter.tooltip") },
+                      { value: "chemex", label: root.t("method.chemex"), icon: "󱜼", tooltip: root.t("method.chemex.tooltip") },
+                      { value: "french", label: root.t("method.french"), icon: "󰙚", tooltip: root.t("method.french.tooltip") },
+                      { value: "turkish", label: root.t("method.turkish"), icon: "󰛊", tooltip: root.t("method.turkish.tooltip") }
+                    ]
+                    onChanged: function(v) { if (root.host) root.host.setMethod(v) }
+                  }
                 }
 
                 Text {
                   width: parent.width
                   text: {
                     if (!root.host) return ""
-                    if (root.host.method === "chemex")
+                    // Every method but the portafilter is priced per volume,
+                    // so they all read the same ratio / yield summary.
+                    if (root.host.method !== "portafilter")
                       return root.t("brew.filterSummary",
                         root.decimal(root.host.filterRatioPer100, 1),
                         Math.round(root.host.filterYield * 100),
@@ -573,33 +736,20 @@ Panel {
                 }
               }
 
-              // ================= Energydrink =================
+              // ================= Tee =================
               Column {
                 width: parent.width
                 spacing: Style.space(10)
-                visible: root.tab === "energy"
+                visible: root.tab === "tea"
 
                 PanelSectionHeader {
-                  text: root.t("section.holyPowder")
+                  text: root.t("section.logCup")
                   foreground: root.contentForeground
                   fontFamily: root.contentFontFamily
                 }
 
-                Text {
-                  width: parent.width
-                  text: root.host
-                    ? root.t("holy.summary",
-                      root.host.formatVolume(root.host.holyMlPerServing),
-                      root.host.holyMgPerServing)
-                    : ""
-                  color: root.dim
-                  font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.caption
-                  wrapMode: Text.WordWrap
-                }
-
                 Grid {
-                  id: holyGrid
+                  id: teaGrid
                   width: parent.width
                   columns: 2
                   columnSpacing: Style.space(10)
@@ -608,11 +758,11 @@ Panel {
                   readonly property real cellWidth: (width - columnSpacing) / 2
 
                   Repeater {
-                    model: root.host ? root.host.holyDrinks : []
+                    model: root.host ? root.host.teaDrinks : []
 
                     DrinkCard {
                       required property var modelData
-                      width: holyGrid.cellWidth
+                      width: teaGrid.cellWidth
                       iconText: modelData.icon
                       title: modelData.name
                       subtitle: root.host
@@ -625,6 +775,22 @@ Panel {
                     }
                   }
                 }
+
+                Text {
+                  width: parent.width
+                  text: root.t("tea.note")
+                  color: root.dim
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.caption
+                  wrapMode: Text.WordWrap
+                }
+              }
+
+              // ================= Cold drinks =================
+              Column {
+                width: parent.width
+                spacing: Style.space(10)
+                visible: root.tab === "energy"
 
                 PanelSectionHeader {
                   text: root.t("section.cans")
@@ -676,7 +842,7 @@ Panel {
               width: body.colWidth
               spacing: Style.space(10)
 
-              // ---- Today's log, both sources in one list. Every drink is
+              // ---- Today's log, every source in one list. Every drink is
               //      removable, because a tracker you cannot correct is a
               //      tracker you stop trusting.
               Item {
@@ -784,8 +950,9 @@ Panel {
                           var d = root.host ? root.host.drinkById(logRow.modelData.id) : null
                           return d ? d.icon : (logRow.isEnergy ? "󱐋" : "󰅶")
                         }
-                        // Energy keeps the tint it has everywhere else, so
-                        // the list reads as two sources without a legend.
+                        // Energy keeps the tint it has everywhere else, and
+                        // tea carries its own leaf, so the list reads by
+                        // source without a legend.
                         color: logRow.isEnergy ? root.accentColor : root.contentForeground
                         font.family: root.contentFontFamily
                         font.pixelSize: Style.font.body
@@ -885,7 +1052,8 @@ Panel {
 
                 foreground: root.contentForeground
                 dim: root.dim
-                accent: root.overLimit ? root.urgentColor : root.accentColor
+                accent: root.curveColor
+                thresholdColor: root.thresholdLineColor
                 track: root.trackColor
                 fontFamily: root.contentFontFamily
                 fontSize: Style.font.caption
@@ -962,10 +1130,23 @@ Panel {
                       }
 
                       Rectangle {
+                        id: teaSegment
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: coffeeSegment.height
+                        radius: Math.min(Style.space(3), width / 2)
+                        height: weekRow.barHeight(weekCol.modelData.teaMg)
+                        color: root.teaTint(weekCol.baseColor)
+
+                        Behavior on height { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+                      }
+
+                      Rectangle {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: coffeeSegment.height + teaSegment.height
                         radius: Math.min(Style.space(3), width / 2)
                         height: weekRow.barHeight(weekCol.modelData.energyMg)
                         color: root.energyTint(weekCol.baseColor)
@@ -1004,12 +1185,14 @@ Panel {
                 }
               }
 
-              // Only worth explaining once there is something to explain.
+              // Only worth explaining once there is something to explain,
+              // and only the sources that actually appear in the strip.
               Row {
-                visible: root.weekHasEnergy
+                visible: root.weekHasCoffee || root.weekHasTea || root.weekHasEnergy
                 spacing: Style.space(12)
 
                 Row {
+                  visible: root.weekHasCoffee
                   spacing: Style.space(5)
 
                   Rectangle {
@@ -1029,6 +1212,27 @@ Panel {
                 }
 
                 Row {
+                  visible: root.weekHasTea
+                  spacing: Style.space(5)
+
+                  Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Style.space(8)
+                    height: Style.space(8)
+                    radius: width / 2
+                    color: root.teaTint(root.accentColor)
+                  }
+
+                  Text {
+                    text: root.t("legend.tea")
+                    color: root.dim
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.caption
+                  }
+                }
+
+                Row {
+                  visible: root.weekHasEnergy
                   spacing: Style.space(5)
 
                   Rectangle {
@@ -1310,7 +1514,7 @@ Panel {
               Column {
                 width: parent.width
                 spacing: Style.space(4)
-                visible: root.host ? root.host.method === "chemex" : false
+                visible: root.host ? root.host.method !== "portafilter" : false
 
                 Item {
                   width: parent.width
@@ -1497,6 +1701,82 @@ Panel {
                   }
                   onChanged: function(v) { root.persist({ language: v }) }
                 }
+              }
+            }
+          }
+
+          // ---- Appearance and alerts. A row of its own: the three columns
+          //      above already carry the brew model, so quiet hours and the
+          //      two chart colours sit side by side rather than squeezing a
+          //      colour swatch in between two number fields.
+          Column {
+            width: parent.width
+            spacing: Style.space(10)
+            visible: root.settingsOpen
+
+            PanelSectionHeader {
+              text: root.t("section.appearance")
+              foreground: root.contentForeground
+              fontFamily: root.contentFontFamily
+            }
+
+            Row {
+              id: appearanceBody
+              width: parent.width
+              spacing: Style.space(20)
+
+              readonly property real colWidth: (width - spacing * 2) / 3
+
+              Column {
+                width: appearanceBody.colWidth
+                spacing: Style.space(8)
+
+                Toggle {
+                  width: parent.width
+                  label: root.t("settings.nightMode")
+                  description: root.t("settings.nightModeNote")
+                  checked: root.host ? root.host.nightModeEnabled : true
+                  foreground: root.contentForeground
+                  fontFamily: root.contentFontFamily
+                  onClicked: root.persist({ nightMode: !(root.host && root.host.nightModeEnabled) })
+                }
+
+                SettingField {
+                  id: nightStartField
+                  label: root.t("settings.nightStart")
+                  from: 0
+                  to: 23
+                  value: root.host ? root.host.nightStartHour : 20
+                  fieldWidth: appearanceBody.colWidth
+                  foreground: root.contentForeground
+                  fontFamily: root.contentFontFamily
+                  onModified: function(v) { root.persistNumber("nightStartHour", v) }
+                }
+              }
+
+              // The swatch that reads "Theme" is not a colour: it is the
+              // accent the chart falls back to, shown so the choice of
+              // going back to it is an informed one.
+              ColorField {
+                width: appearanceBody.colWidth
+                label: root.t("settings.curveColor")
+                themeLabel: root.t("settings.colorTheme")
+                value: root.host ? root.host.chartCurveColor : ""
+                defaultColor: root.themeCurveColor
+                foreground: root.contentForeground
+                fontFamily: root.contentFontFamily
+                onChanged: function(v) { root.persist({ chartCurveColor: v }) }
+              }
+
+              ColorField {
+                width: appearanceBody.colWidth
+                label: root.t("settings.thresholdColor")
+                themeLabel: root.t("settings.colorTheme")
+                value: root.host ? root.host.chartThresholdColor : ""
+                defaultColor: root.themeThresholdColor
+                foreground: root.contentForeground
+                fontFamily: root.contentFontFamily
+                onChanged: function(v) { root.persist({ chartThresholdColor: v }) }
               }
             }
           }
