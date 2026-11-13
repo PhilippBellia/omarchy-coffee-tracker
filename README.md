@@ -167,7 +167,7 @@ Every user-facing string lives in `locales/<code>.json` as a flat
    decimals, and `meta.timeFormat` to a
    [Qt time format](https://doc.qt.io/qt-6/qtime.html#toString) — `HH:mm`
    for a 24-hour clock, `h:mm AP` for a 12-hour one with AM/PM.
-4. Add the code to `available` in `I18n.qml` — one line, and it appears in
+4. Add the code to `available` in `CoffeeI18n.qml` — one line, and it appears in
    the panel's picker.
 5. Run the checker:
 
