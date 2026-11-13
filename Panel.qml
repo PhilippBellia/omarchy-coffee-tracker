@@ -46,7 +46,7 @@ Panel {
   readonly property var barIdentity: hostWidget || root
   readonly property var host: hostWidget
 
-  // Every string in this panel goes through the host's I18n instance, so
+  // Every string in this panel goes through the host's CoffeeI18n instance, so
   // the panel and the bar label are never in two different languages.
   function t(key) {
     if (!host) return ""

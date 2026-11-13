@@ -107,7 +107,9 @@ BarWidget {
   //      writes a concrete code here when the user overrides it. Every
   //      user-facing string in this file and in the panel goes through t().
   readonly property string language: String(setting("language", "auto") || "auto")
-  readonly property I18n i18n: I18n { language: root.language }
+  // Not named I18n: Omarchy 4.5 ships a Commons singleton of that name, and
+  // the shell's import would win over this directory's file.
+  readonly property CoffeeI18n i18n: CoffeeI18n { language: root.language }
   function t(key) {
     return root.i18n.t.apply(root.i18n, arguments)
   }
