@@ -718,6 +718,46 @@ BarWidget {
     saveLog()
   }
 
+  // Moves one of today's entries to another time of day, for cups logged in
+  // one go after the fact. The curve and the residual figure read `t`, so
+  // this is what puts a backfilled day back into the right shape. The new
+  // time stays inside today and never runs past the present, and it is
+  // nudged by a millisecond when it would land on another entry's exact
+  // timestamp, because `t` is what the list deletes and edits by. Returns
+  // the timestamp the entry ended up with, or -1 when nothing matched.
+  function retimeEntry(timestamp, hour, minute) {
+    var current = Date.now()
+    var dayStart = startOfDay(current)
+    var target = dayStart
+      + clampNum(Math.floor(hour), 0, 23) * 3600000
+      + clampNum(Math.floor(minute), 0, 59) * 60000
+    target = Math.min(target, current)
+
+    var index = -1
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].t === timestamp) { index = i; break }
+    }
+    if (index < 0 || timestamp < dayStart) return -1
+
+    var taken = true
+    while (taken) {
+      taken = false
+      for (var j = 0; j < entries.length; j++) {
+        if (j !== index && entries[j].t === target) { taken = true; target += 1; break }
+      }
+    }
+
+    var next = entries.slice()
+    var moved = Object.assign({}, next[index])
+    moved.t = target
+    next[index] = moved
+    next.sort(function(a, b) { return a.t - b.t })
+    root.now = current
+    root.entries = next
+    saveLog()
+    return target
+  }
+
   function undoLast() {
     if (todayEntries.length === 0) return
     removeEntryAt(todayEntries[todayEntries.length - 1].t)

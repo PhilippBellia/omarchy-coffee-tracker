@@ -168,6 +168,51 @@ Panel {
     if (host) host.persistSettings(values)
   }
 
+  // ---- Changing the time of a logged drink. One editor for the whole list,
+  //      outside the Repeater: the list rebuilds whenever the minute ticks,
+  //      and a field inside a delegate would lose what is being typed into
+  //      it each time. The draft lives here until it is applied.
+  property real editT: -1
+  property int editHour: 0
+  property int editMinute: 0
+
+  readonly property var editEntry: {
+    if (editT < 0) return null
+    var src = host ? host.todayEntries : []
+    for (var i = 0; i < src.length; i++) if (src[i].t === editT) return src[i]
+    return null
+  }
+
+  function startEdit(entry) {
+    if (!entry) return
+    if (editT === entry.t) { cancelEdit(); return }
+    var d = new Date(entry.t)
+    editHour = d.getHours()
+    editMinute = d.getMinutes()
+    editT = entry.t
+  }
+
+  function cancelEdit() {
+    editT = -1
+  }
+
+  // A SpinBox only commits typed digits on Enter or when it loses focus, and
+  // a click on the apply button does neither. Read what is in the field so
+  // "type 14, click ✓" does what it looks like it does.
+  function typedValue(field, fallback) {
+    var text = field && field.contentItem ? String(field.contentItem.text) : ""
+    var n = parseInt(text, 10)
+    return isFinite(n) ? n : fallback
+  }
+
+  function applyEdit() {
+    if (!host || !editEntry) { cancelEdit(); return }
+    var hour = typedValue(editHourField.field, editHour)
+    var minute = typedValue(editMinuteField.field, editMinute)
+    host.retimeEntry(editT, hour, minute)
+    cancelEdit()
+  }
+
   // Slider handlers hand back whatever the drag produced; a value that is not
   // a finite number is a control mid-construction, not a user decision.
   function persistNumber(key, value) {
@@ -194,6 +239,7 @@ Panel {
         || sleepField.field.activeFocus || doseField.field.activeFocus
         || holyMgField.field.activeFocus || holyMlField.field.activeFocus
         || nightStartField.field.activeFocus
+        || editHourField.field.activeFocus || editMinuteField.field.activeFocus
 
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
@@ -894,6 +940,103 @@ Panel {
                 font.pixelSize: Style.font.bodySmall
               }
 
+              // ---- The time editor. Shown for the one entry whose pencil was
+              //      clicked; Enter in either field or the check mark applies,
+              //      Escape or the cross leaves the entry as it was.
+              Item {
+                width: parent.width
+                visible: root.editEntry !== null
+                height: visible ? Math.max(editLabel.implicitHeight, editControls.implicitHeight) : 0
+
+                Text {
+                  id: editLabel
+                  anchors.left: parent.left
+                  anchors.right: editControls.left
+                  anchors.rightMargin: Style.space(8)
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: root.editEntry && root.host
+                    ? root.t("log.editTimeFor", root.host.entryName(root.editEntry))
+                    : ""
+                  color: root.dim
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.bodySmall
+                  elide: Text.ElideRight
+                }
+
+                Row {
+                  id: editControls
+                  anchors.right: parent.right
+                  anchors.verticalCenter: parent.verticalCenter
+                  spacing: Style.space(4)
+
+                  NumberField {
+                    id: editHourField
+                    anchors.verticalCenter: parent.verticalCenter
+                    label: ""
+                    from: 0
+                    to: 23
+                    value: root.editHour
+                    fieldWidth: Style.space(56)
+                    foreground: root.contentForeground
+                    fontFamily: root.contentFontFamily
+                    onModified: function(v) { root.editHour = v }
+                    Keys.onEscapePressed: root.cancelEdit()
+                  }
+
+                  Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: ":"
+                    color: root.contentForeground
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.body
+                  }
+
+                  NumberField {
+                    id: editMinuteField
+                    anchors.verticalCenter: parent.verticalCenter
+                    label: ""
+                    from: 0
+                    to: 59
+                    value: root.editMinute
+                    fieldWidth: Style.space(56)
+                    foreground: root.contentForeground
+                    fontFamily: root.contentFontFamily
+                    onModified: function(v) { root.editMinute = v }
+                    Keys.onEscapePressed: root.cancelEdit()
+                  }
+
+                  // Enter is taken by the SpinBox's own text field, which
+                  // reports it as `accepted` rather than letting it bubble.
+                  Connections {
+                    target: editHourField.field.contentItem
+                    function onAccepted() { root.applyEdit() }
+                  }
+
+                  Connections {
+                    target: editMinuteField.field.contentItem
+                    function onAccepted() { root.applyEdit() }
+                  }
+
+                  PanelActionButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    iconText: "󰄬"
+                    tooltipText: root.t("log.editApply")
+                    foreground: root.contentForeground
+                    fontFamily: root.contentFontFamily
+                    onClicked: root.applyEdit()
+                  }
+
+                  PanelActionButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    iconText: "󰅖"
+                    tooltipText: root.t("log.editCancel")
+                    foreground: root.contentForeground
+                    fontFamily: root.contentFontFamily
+                    onClicked: root.cancelEdit()
+                  }
+                }
+              }
+
               Column {
                 width: parent.width
                 spacing: Style.space(2)
@@ -980,6 +1123,17 @@ Panel {
                         color: root.dim
                         font.family: root.contentFontFamily
                         font.pixelSize: Style.font.bodySmall
+                      }
+
+                      PanelActionButton {
+                        anchors.verticalCenter: parent.verticalCenter
+                        iconText: "󰏫"
+                        tooltipText: root.t("log.editTime")
+                        size: Style.space(20)
+                        fontSize: Style.font.iconSmall
+                        foreground: root.editT === logRow.modelData.t ? root.accentColor : root.contentForeground
+                        fontFamily: root.contentFontFamily
+                        onClicked: root.startEdit(logRow.modelData)
                       }
 
                       PanelActionButton {

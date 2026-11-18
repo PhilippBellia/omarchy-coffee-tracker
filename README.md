@@ -66,6 +66,10 @@ portafilter, a teapot or a shaker.
   last week looked like.
 - **An answer when you log one** — the cup bounces, steam lifts off it for
   two seconds, and then nothing is still moving.
+- **Times you can fix after the fact** — the pencil next to a drink in
+  today's log moves it to another time of day, for a morning entered in one
+  go at noon. The curve and the residual figure follow, since they read the
+  time, not the order things were logged in.
 
 Defaults follow the EFSA figure of 400 mg a day as a safe habitual intake
 for a healthy adult, and a 5 h half-life, which is the population mean.
